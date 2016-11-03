@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
-import org.apache.commons.lang3.ArrayUtils;
 
 /**
  *
@@ -40,10 +39,15 @@ public class EllipticCurveElgamal {
         String key = input.nextLine();
         System.out.print("Enter base value: ");
         String base = input.nextLine(); System.out.println();
-        
-        Point publicKey = curve.multiply(new BigInteger(key), curve.calculatePoint(new BigInteger(base)));
+        Point[] publicKey = new Point[2]; 
+        BigInteger basex = new BigInteger(base);
+        do {
+            basex = basex.add(BigInteger.ONE).mod(curve.getP());
+            publicKey[0] = curve.calculatePoint(basex);
+        } while (!curve.checkOnCurve(publicKey[0]));
+        publicKey[1] = curve.multiply(new BigInteger(key), publicKey[0]);
         writeFile(key, "key.pri");
-        writeFile(publicKey.toString(), "key.pub");
+        writeFile(publicKey[0] + "\n" + publicKey[1], "key.pub");
     }
     
     public void encrypt(String plaintextFile, String privateKeyFile, String publicKeyFile) {
@@ -54,15 +58,15 @@ public class EllipticCurveElgamal {
         
         long startTime = System.currentTimeMillis();
         BigInteger[] plaintext = fileToBigInts(plaintextFile);
-        Point publicKey = getPublicKey(publicKeyFile);
+        Point[] publicKey = getPublicKey(publicKeyFile);
         BigInteger privateKey = getPrivateKey(privateKeyFile);
         
         List<Point[]> ciphertext = new ArrayList<Point[]>();
         for (int i=0; i<plaintext.length; i++) {
             Point[] temp = new Point[2];
-            temp[0] = publicKey;
+            temp[0] = curve.multiply(privateKey, publicKey[0]);
             Point message = curve.encode(plaintext[i]);
-            Point multiply = curve.multiply(privateKey, publicKey);
+            Point multiply = curve.multiply(privateKey, publicKey[1]);
             temp[1] = curve.add(message, multiply);
             ciphertext.add(temp);
         }
@@ -99,7 +103,18 @@ public class EllipticCurveElgamal {
             
             Point multiply = curve.multiply(privateKey, cipher[0]);
             Point message = curve.subtract(cipher[1], multiply);
-            bytes = (byte[])ArrayUtils.addAll(bytes, curve.decode(message).toByteArray());
+            byte[] decodedMessage = curve.decode(message).toByteArray();
+            if (bytes == null) {
+                bytes = decodedMessage;
+                continue;
+            }
+            if (decodedMessage == null) {
+                continue;
+            }
+            byte[] tmp = new byte[bytes.length + decodedMessage.length];
+            System.arraycopy(bytes, 0, tmp, 0, bytes.length);
+            System.arraycopy(decodedMessage, 0, tmp, bytes.length, decodedMessage.length);
+            bytes = tmp; 
         }
         
         FileOutputStream fos = new FileOutputStream(plaintextFile);
@@ -137,9 +152,11 @@ public class EllipticCurveElgamal {
         return result;
     }
     
-    public Point getPublicKey(String filename) {
+    public Point[] getPublicKey(String filename) {
         String[] splited = readFile(filename).split("\\s+");
-        Point p = new Point(new BigInteger(splited[0]), new BigInteger(splited[1]));
+        Point[] p = new Point[2];
+        p[0] = new Point(new BigInteger(splited[0]), new BigInteger(splited[1]));
+        p[1] = new Point(new BigInteger(splited[2]), new BigInteger(splited[3]));
         return p;
     }
     

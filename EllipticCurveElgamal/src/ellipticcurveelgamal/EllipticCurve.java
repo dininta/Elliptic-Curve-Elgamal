@@ -94,6 +94,8 @@ public class EllipticCurve {
       return new Point (xr, yr);
     }
     public Point inverse(Point point) {
+      if (point.equals(EllipticCurve.ZERO))
+        return point;
       return new Point(point.getX(), point.getY().negate().mod(p));
     }
     public Point subtract(Point p1, Point p2) {
