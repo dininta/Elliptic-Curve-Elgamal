@@ -33,15 +33,17 @@ public class Main {
             System.out.print("Enter filename for your private key: ");
             String privateKeyFile = input.nextLine();
             System.out.print("Enter filename for receiver's public key: ");
-            String publicKeyFile = input.nextLine();
+            String publicKeyFile = input.nextLine(); System.out.println();
             elgamal.encrypt(plaintextFile, privateKeyFile, publicKeyFile);
         } else {
             // Decrypt
             System.out.print("Enter filename for ciphertext: ");
             String ciphertextFile = input.nextLine();
+            System.out.print("Enter filename for the result plaintext: ");
+            String plaintextFile = input.nextLine();
             System.out.print("Enter filename for your private key: ");
-            String privateKeyFile = input.nextLine();
-            elgamal.decrypt(ciphertextFile, privateKeyFile);
+            String privateKeyFile = input.nextLine(); System.out.println();
+            elgamal.decrypt(ciphertextFile, plaintextFile, privateKeyFile);
         }
     }
     
