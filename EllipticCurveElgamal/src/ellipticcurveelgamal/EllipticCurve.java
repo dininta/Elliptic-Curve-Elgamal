@@ -38,6 +38,12 @@ public class EllipticCurve {
       this.p = p;
       this.koblitz = koblitz;
     }
+    public BigInteger getP() {
+        return this.p;
+    }
+    public int getKoblitz() {
+        return this.koblitz;
+    }
     public Point calculatePoint(BigInteger x) {
       BigInteger quadratic = x.multiply(x).add(a).multiply(x).add(b).mod(p);
       BigInteger y = quadratic.modPow(p.add(BigInteger.ONE).divide(BigInteger.valueOf(4)), p);

@@ -34,4 +34,7 @@ public class Point {
     public boolean equals(Point point) {
       return this.x.equals(point.getX()) && this.y.equals(point.getY());
     }
+    public String toString() {
+      return x + "\n" + y;
+    }
 }
