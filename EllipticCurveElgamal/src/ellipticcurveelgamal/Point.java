@@ -31,4 +31,7 @@ public class Point {
     public void setY(BigInteger y) {
       this.y = y;
     }
+    public boolean equals(Point point) {
+      return this.x.equals(point.getX()) && this.y.equals(point.getY());
+    }
 }
