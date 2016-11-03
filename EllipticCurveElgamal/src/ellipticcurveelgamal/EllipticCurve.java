@@ -44,6 +44,12 @@ public class EllipticCurve {
       assert(p.isProbablePrime(32));
       assert(!this.a.modPow(BigInteger.valueOf(3), p).multiply(BigInteger.valueOf(4)).add(b.add(b).multiply(BigInteger.valueOf(27))).mod(p).equals(BigInteger.ZERO));
     }
+    public BigInteger getP() {
+        return this.p;
+    }
+    public int getKoblitz() {
+        return this.koblitz;
+    }
     public Point calculatePoint(BigInteger x) {
       BigInteger quadratic = x.multiply(x).add(a).multiply(x).add(b).mod(p);
       BigInteger y = quadratic.modPow(p.add(BigInteger.ONE).divide(BigInteger.valueOf(4)), p);
