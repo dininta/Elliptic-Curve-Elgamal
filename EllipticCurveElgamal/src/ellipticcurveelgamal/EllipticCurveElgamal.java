@@ -9,15 +9,22 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  *
@@ -39,8 +46,8 @@ public class EllipticCurveElgamal {
         String base = input.nextLine(); System.out.println();
         
         Point publicKey = curve.multiply(new BigInteger(key), curve.calculatePoint(new BigInteger(base)));
-        writeToFile(key, "key.pri");
-        writeToFile(publicKey.toString(), "key.pub");
+        writeFile(key, "key.pri");
+        writeFile(publicKey.toString(), "key.pub");
     }
     
     public void encrypt(String plaintextFile, String privateKeyFile, String publicKeyFile) {
@@ -59,11 +66,32 @@ public class EllipticCurveElgamal {
         }
         
         // TODO: convert ciphertext to hexa, print, and save to file
-
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<ciphertext.size(); i++) {
+            sb.append(ciphertext.get(i)[0].toString() + "\n");
+            sb.append(ciphertext.get(i)[1].toString() + "\n");
+        }
+        writeFile(sb.toString(), "ciphertext.txt");
     }
     
-    public void decrypt(String ciphertextFile, String privateKeyFile) {
+    public void decrypt(String ciphertextFile, String privateKeyFile) throws FileNotFoundException, IOException {
+        BigInteger privateKey = getPrivateKey(privateKeyFile);
+        String[] splited = readFile(ciphertextFile).split("\\s+");
         
+        byte[] bytes = null;
+        for (int i=0; i<splited.length; i+=4) {
+            Point[] cipher = new Point[2];
+            cipher[0] = new Point(new BigInteger(splited[i]), new BigInteger(splited[i+1]));
+            cipher[1] = new Point(new BigInteger(splited[i+2]), new BigInteger(splited[i+3]));
+            
+            Point multiply = curve.multiply(privateKey, cipher[0]);
+            Point message = curve.subtract(cipher[1], multiply);
+            bytes = (byte[])ArrayUtils.addAll(bytes, curve.decode(message).toByteArray());
+        }
+        
+        FileOutputStream fos = new FileOutputStream("result.txt");
+        fos.write(bytes);
+        fos.close();
     }
     
     public BigInteger[] fileToBigInts(String filename) {
@@ -82,37 +110,27 @@ public class EllipticCurveElgamal {
         int maxByteSize = maxValue.toByteArray().length - 1;
         BigInteger[] result = new BigInteger[bFile.length / maxByteSize + 1];
         for (int i=0; i<result.length; i++) {
-            int lastIdx = (i+1)*maxByteSize - 1;
+            int lastIdx = (i+1)*maxByteSize;
             if (lastIdx > bFile.length)
-                lastIdx = bFile.length - 1;
+                lastIdx = bFile.length;
             byte[] bytes = Arrays.copyOfRange(bFile, i*maxByteSize, lastIdx);
             result[i] = new BigInteger(bytes);
         }
-        
         return result;
     }
     
     public Point getPublicKey(String filename) {
-        Point p = new Point();
-        try {
-            InputStream is = new FileInputStream(filename);
-            BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-            p.setX(new BigInteger(buf.readLine()));
-            p.setY(new BigInteger(buf.readLine()));
-        } catch (Exception e) {}
+        String[] splited = readFile(filename).split("\\s+");
+        Point p = new Point(new BigInteger(splited[0]), new BigInteger(splited[1]));
         return p;
     }
     
     public BigInteger getPrivateKey(String filename) {
-        try {
-            InputStream is = new FileInputStream(filename);
-            BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-            return new BigInteger(buf.readLine());
-        } catch (Exception e) {}
-        return BigInteger.ZERO;
+        String[] splited = readFile(filename).split("\\s+");
+        return new BigInteger(splited[0]);
     }
     
-    public void writeToFile(String content, String filename) {
+    public void writeFile(String content, String filename) {
         try {
             File file = new File(filename);
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
@@ -120,5 +138,20 @@ public class EllipticCurveElgamal {
             bw.write(content);
             bw.close();
         } catch (IOException e) {}
+    }
+    
+    public String readFile(String filename) {
+        try {
+            InputStream is = new FileInputStream(filename);
+            BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+            String line = buf.readLine();
+            StringBuilder sb = new StringBuilder();
+            while(line != null){
+                sb.append(line).append(" ");
+                line = buf.readLine();
+            }
+            return sb.toString();
+        } catch (Exception e) {}
+        return null;
     }
 }

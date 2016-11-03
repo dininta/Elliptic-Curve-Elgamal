@@ -5,6 +5,7 @@
  */
 package ellipticcurveelgamal;
 
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -13,7 +14,7 @@ import java.util.Scanner;
  */
 public class Main {
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         EllipticCurveElgamal elgamal = new EllipticCurveElgamal();
         Scanner input = new Scanner(System.in);
         System.out.println("CHOOSE AN ACTION");
