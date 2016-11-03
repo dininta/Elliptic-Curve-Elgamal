@@ -23,6 +23,8 @@ public class EllipticCurve {
       BigInteger two64 = BigInteger.valueOf(2).pow(64);
       this.p = two192.subtract(two64).subtract(BigInteger.ONE);
       this.koblitz = 32;
+      assert(p.isProbablePrime(32));
+      assert(!this.a.modPow(BigInteger.valueOf(3), p).multiply(BigInteger.valueOf(4)).add(b.add(b).multiply(BigInteger.valueOf(27))).mod(p).equals(BigInteger.ZERO));
     }
     public EllipticCurve(int koblitz) {
       this.a = BigInteger.valueOf(12312);
@@ -31,12 +33,16 @@ public class EllipticCurve {
       BigInteger two64 = BigInteger.valueOf(2).pow(64);
       this.p = two192.subtract(two64).subtract(BigInteger.ONE);
       this.koblitz = koblitz;
+      assert(p.isProbablePrime(32));
+      assert(!this.a.modPow(BigInteger.valueOf(3), p).multiply(BigInteger.valueOf(4)).add(b.add(b).multiply(BigInteger.valueOf(27))).mod(p).equals(BigInteger.ZERO));
     }
     public EllipticCurve(BigInteger a, BigInteger b, BigInteger p, int koblitz) {
       this.a = a;
       this.b = b;
       this.p = p;
       this.koblitz = koblitz;
+      assert(p.isProbablePrime(32));
+      assert(!this.a.modPow(BigInteger.valueOf(3), p).multiply(BigInteger.valueOf(4)).add(b.add(b).multiply(BigInteger.valueOf(27))).mod(p).equals(BigInteger.ZERO));
     }
     public Point calculatePoint(BigInteger x) {
       BigInteger quadratic = x.multiply(x).add(a).multiply(x).add(b).mod(p);
@@ -60,7 +66,7 @@ public class EllipticCurve {
         }
       }
       return EllipticCurve.ZERO;
-    }  
+    }
     public BigInteger decode(Point point) {
       BigInteger x = point.getX();
       return x.subtract(BigInteger.ONE).divide(BigInteger.valueOf(koblitz));
@@ -70,11 +76,13 @@ public class EllipticCurve {
         return p2;
       if (p2.equals(EllipticCurve.ZERO))
         return p1;
+      if (p1.equals(p2))
+        return this.doubling(p1);
       BigInteger dx = p1.getX().subtract(p2.getX()).mod(p);
       BigInteger dy = p1.getY().subtract(p2.getY()).mod(p);
       if (dx.equals(BigInteger.ZERO))
         return EllipticCurve.ZERO;
-      BigInteger gradien = dy.multiply(dx.modInverse(p)).mod(p);
+      BigInteger gradien = dy.multiply(dx.modPow(p.subtract(BigInteger.valueOf(2)), p)).mod(p);
       BigInteger xr = gradien.multiply(gradien).subtract(p1.getX().add(p2.getX())).mod(p);
       BigInteger yr = gradien.multiply(p1.getX().subtract(xr)).subtract(p1.getY()).mod(p);
       return new Point (xr, yr);
@@ -82,7 +90,7 @@ public class EllipticCurve {
     public Point inverse(Point point) {
       return new Point(point.getX(), point.getY().negate().mod(p));
     }
-    public Point substract(Point p1, Point p2) {
+    public Point subtract(Point p1, Point p2) {
       return this.add(p1, this.inverse(p2));
     }
     public Point doubling(Point point) {
@@ -90,22 +98,23 @@ public class EllipticCurve {
         return point;
       if (point.getY().equals(BigInteger.ZERO))
         return EllipticCurve.ZERO;
-      BigInteger up = point.getX().multiply(BigInteger.valueOf(3)).add(this.a).mod(p);
+      BigInteger up = point.getX().multiply(point.getX()).multiply(BigInteger.valueOf(3)).add(this.a).mod(p);
       BigInteger down = point.getY().add(point.getY()).mod(p);
 
-      BigInteger gradien = up.multiply(down.modInverse(p)).mod(p);
+      BigInteger gradien = up.multiply(down.modPow(p.subtract(BigInteger.valueOf(2)), p)).mod(p);
       BigInteger xr = gradien.multiply(gradien).subtract(point.getX().add(point.getX())).mod(p);
       BigInteger yr = gradien.multiply(point.getX().subtract(xr)).subtract(point.getY()).mod(p);
       return new Point (xr, yr);
     }
     public Point multiply(BigInteger k, Point point) {
-      if (k == BigInteger.ZERO)
+      if (k.equals(BigInteger.ZERO))
         return EllipticCurve.ZERO;
-      if (k == BigInteger.ONE)
+      if (k.equals(BigInteger.ONE))
         return point;
       Point point2 = this.multiply(k.divide(BigInteger.valueOf(2)), this.doubling(point));
-      if (k.mod(BigInteger.valueOf(2)).equals(BigInteger.ONE))
+      if (k.mod(BigInteger.valueOf(2)).equals(BigInteger.ONE)) {
         point2 = this.add(point2, point);
+      }
       return point2;
     }
     public void set(BigInteger a, BigInteger b, BigInteger p) {
@@ -113,4 +122,36 @@ public class EllipticCurve {
       this.b = b;
       this.p = p;
     }
-}
+    public static void testing(String[] args) {
+        EllipticCurve ec = new EllipticCurve();
+
+        System.out.println("***** Testing EllipticCurve *****");
+        BigInteger key = new BigInteger("234400053450093420534645634534534");
+        Point g = ec.encode(BigInteger.valueOf(123456));
+        Point gkey = ec.multiply(key, g);
+        System.out.println("# Pembangkitan kunci . . .");
+        System.out.println("key : " + key);
+        System.out.println("Base Point : " + g);
+        System.out.println("Public Key : " + gkey);
+
+        BigInteger message = BigInteger.valueOf(987654321);
+        Point m = ec.encode(message);
+        BigInteger y = new BigInteger("3123124135245645645");
+        Point c1 = ec.multiply(y, g);
+        Point c2 = ec.add(m, ec.multiply(y, gkey));
+        System.out.println("\n## Enkripsi . . .");
+        System.out.println("message : " + message);
+        System.out.println("Ecoded message : " + m);
+        System.out.println("Random Number(y) : " + y);
+        System.out.println("Cipher 1 : " + c1);
+        System.out.println("Cipher 2 : " + c2);
+
+
+        Point Pr = ec.subtract(c2, ec.multiply(key, c1));
+        BigInteger result = ec.decode(Pr);
+        System.out.println("\n### Dekripsi . . .");
+        System.out.println("Decrypted Point : " + Pr);
+        System.out.println("Message : " + result);
+        System.out.println(result.equals(message) ? "Success!!!" : "Failed!!!");
+    }
+} 
