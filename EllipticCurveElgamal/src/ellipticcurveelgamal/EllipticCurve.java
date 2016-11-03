@@ -67,6 +67,9 @@ public class EllipticCurve {
     public Point add(Point p1, Point p2) {
       return new Point ();
     }
+    public Point substract(Point p1, Point p2) {
+      return new Point ();
+    }
     public Point doubling(Point point) {
       return new Point ();
     }
